@@ -1,0 +1,60 @@
+name: RM Watcher
+
+on:
+  schedule:
+    # Full sweep cada 6h (offset :41 evita choque con bitnest-watcher :23)
+    - cron: '41 */6 * * *'
+    # Light (RM1 + RM2 only) cada 1h para drain detection rápido
+    - cron: '47 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install deps
+        run: pip install requests
+
+      - name: Determine cadence
+        id: cadence
+        run: |
+          minute=$(date -u +%M)
+          if [ "$minute" = "41" ]; then
+            echo "cadence=6h" >> $GITHUB_OUTPUT
+          else
+            echo "cadence=1h" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run watcher
+        env:
+          WATCHER_CADENCE: ${{ steps.cadence.outputs.cadence }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_RM_THREAD_ID: ${{ secrets.TELEGRAM_RM_THREAD_ID }}
+          TELEGRAM_BITRADEX_THREAD_ID: ${{ secrets.TELEGRAM_BITRADEX_THREAD_ID }}
+          FERNANDO_TRON_WALLET: ${{ secrets.FERNANDO_TRON_WALLET }}
+        run: python watcher.py
+
+      - name: Commit state if changed
+        run: |
+          git config user.name "rm-watcher-bot"
+          git config user.email "bot@automatiza.ia"
+          git add state.json
+          if git diff --cached --quiet; then
+            echo "No state changes"
+          else
+            git commit -m "watcher: update state $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            git push
+          fi
