@@ -39,11 +39,16 @@ if sys.platform == "win32":
 
 # ============= CONFIG =============
 
-# TRON addresses RM (verificadas 2026-05-23)
-HOT_WALLET = "TQZvYW7Am7rm7R2tbCVq84135zUXADDkUJ"   # hot wallet operador
-TREASURY   = "TGTdkJTwFALEmj889t95uosoxSv8888888"   # treasury vanity chino
-CASH_OUT   = "TH8fsKYVTQh8tmEyUr6PgzbMjoD54LXbFm"   # wallet probable cash-out final
-USDT_TRC20 = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
+# TRON addresses RM cluster (verificadas 2026-05-23/24)
+HOT_WALLET     = "TQZvYW7Am7rm7R2tbCVq84135zUXADDkUJ"   # hot wallet operador (depósito Fernando)
+HOT_WALLET_2   = "THavRzXk7Tt43GeU4Sxbig5VJakZYnN39e"   # 2nd hot wallet del cluster (descubierta 2026-05-24, 1430 tx, ~$15K/día IN, sweep a treasury vanity)
+HOT_WALLET_3   = "TLaGjwhvA8XQYSxFAcAXy7Dvuue9eGYitv"   # 3rd hot wallet recurrente (bridge interno, sender frecuente a HOT_WALLET_2 — confirmada 2026-05-24)
+TREASURY       = "TGTdkJTwFALEmj889t95uosoxSv8888888"   # treasury vanity chino (recibe sweeps)
+CASH_OUT       = "TH8fsKYVTQh8tmEyUr6PgzbMjoD54LXbFm"   # wallet probable cash-out final
+USDT_TRC20     = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
+
+# Cluster RM completo (para iteración en checks)
+RM_CLUSTER_HOT = [HOT_WALLET, HOT_WALLET_2, HOT_WALLET_3]
 
 # Fernando wallet TRON (la misma EVM-format que BSC pero TRON usa base58)
 # IMPORTANT: Fernando NO me dio su wallet TRON personal. Por ahora tracking
