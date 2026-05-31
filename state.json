@@ -1,11 +1,11 @@
 {
   "rm1_hot_last_op": 1780239651.0,
-  "rm1_hot_trx": 32.429369,
-  "rm1_hot_usdt": 29.15484,
+  "rm1_hot_trx": 32.42937,
+  "rm1_hot_usdt": 878.15484,
   "rm2_treasury_usdt": 58751.308584,
-  "rm3_treasury_6h_out": 74453.10999999999,
+  "rm3_treasury_6h_out": 63815.79,
   "rm4_hot_inbound_12h_count": 1,
   "rm4_hot_inbound_12h_usdt": 2008.0,
-  "rm5_cashout_trx": 375.454343,
-  "rm5_cashout_usdt": 199654.964746
+  "rm5_cashout_trx": 339.739532,
+  "rm5_cashout_usdt": 223466.084746
 }
