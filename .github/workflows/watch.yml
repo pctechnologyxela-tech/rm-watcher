@@ -55,11 +55,18 @@ jobs:
           TELEGRAM_BITRADEX_THREAD_ID: ${{ secrets.TELEGRAM_BITRADEX_THREAD_ID }}
         run: python domain_tracker.py || echo "domain_tracker best-effort (crt.sh puede estar caído)"
 
+      - name: Run cazador reverse-IP watch (detector proactivo dominio RM nuevo)
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_RM_THREAD_ID: ${{ secrets.TELEGRAM_RM_THREAD_ID }}
+        run: python cazador_reverse_ip_watch.py || echo "cazador reverse-IP best-effort"
+
       - name: Commit state if changed
         run: |
           git config user.name "rm-watcher-bot"
           git config user.email "bot@automatiza.ia"
-          git add state.json domains.json
+          git add state.json domains.json cazador_ip_state.json
           if git diff --cached --quiet; then
             echo "No state changes"
           else
