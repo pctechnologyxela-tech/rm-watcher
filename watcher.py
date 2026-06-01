@@ -45,16 +45,32 @@ HOT_WALLET_2   = "THavRzXk7Tt43GeU4Sxbig5VJakZYnN39e"   # 2nd hot wallet del clu
 HOT_WALLET_3   = "TLaGjwhvA8XQYSxFAcAXy7Dvuue9eGYitv"   # 3rd hot wallet recurrente (bridge interno, sender frecuente a HOT_WALLET_2 — confirmada 2026-05-24)
 TREASURY       = "TGTdkJTwFALEmj889t95uosoxSv8888888"   # treasury vanity chino (recibe sweeps)
 CASH_OUT       = "TH8fsKYVTQh8tmEyUr6PgzbMjoD54LXbFm"   # wallet probable cash-out final
+PAYOUT_HUB     = "TCciSR7N3mpCPKkXdbkHU3xmdNit6nHUwF"   # hub de payout RM (paga a usuarios; 2026-06-01)
+HUB_FEEDER     = "TPUtZUmCcYm2gWhTeD9VXYiVUepQRdPauw"   # alimenta el payout hub
 USDT_TRC20     = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"
+
+# Colectoras de depósito que RM le asignó a Fernando por período (todas barren 100% al treasury,
+# verificado on-chain 2026-06-01). Son COMPARTIDAS (pooled, no exclusivas) — sirven como anclas
+# adicionales de salud del canal de captación de RM.
+DEPOSIT_COLLECTORS = {
+    "TQZvYW7Am7rm7R2tbCVq84135zUXADDkUJ": "RM inv mayo26 (=HOT1)",
+    "THavRzXk7Tt43GeU4Sxbig5VJakZYnN39e": "RM mayo26 B (=HOT2)",
+    "TCrXsS2ZwXHtAQFavpHbuYgzScaJXGEvyk": "RM dic25",
+    "TS9ZYS5y17GuyNpRqC2ZK4C85R45qZaVeu": "RM 20feb",
+    "TXc73hqEzuwcQswKPF4HFYbms3EYyWH6PK": "RM inversas 3",
+    "TJy6JgH2oZQXxNAmVhj667Gd8D5DMYFBR1": "RM inversas 2",
+}
 
 # Cluster RM completo (para iteración en checks)
 RM_CLUSTER_HOT = [HOT_WALLET, HOT_WALLET_2, HOT_WALLET_3]
+# Wallets que pagan a usuarios (fuente de settlements) — usado por RMP1
+RM_PAYERS = [HOT_WALLET, TREASURY, CASH_OUT, PAYOUT_HUB, HUB_FEEDER]
 
 # Fernando wallet TRON (la misma EVM-format que BSC pero TRON usa base58)
 # IMPORTANT: Fernando NO me dio su wallet TRON personal. Por ahora tracking
 # del depósito sale por Binance hot wallet. Cuando Fernando me confirme su
 # wallet TRON personal, actualizar este valor.
-FERNANDO_TRON = os.environ.get("FERNANDO_TRON_WALLET", "")
+FERNANDO_TRON = os.environ.get("FERNANDO_TRON_WALLET", "TLtozDSkukon7AF8Uk2J14h9uTkFqT44ra")
 
 # Telegram supergroup
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
@@ -311,8 +327,8 @@ def check_rmp1_fernando_settlement(state):
             continue
         v = int(t.get("value", 0)) / 1e6
         fr = t.get("from", "")
-        # Solo alertar si viene del sistema RM (hot wallet o treasury)
-        if fr in [HOT_WALLET, TREASURY, CASH_OUT]:
+        # Solo alertar si viene del sistema RM (hot wallet, treasury, cash-out, hub, feeder)
+        if fr in RM_PAYERS:
             new_settles.append((v, fr, h, t.get("block_timestamp", 0) / 1000))
             seen.add(h)
     state["rmp1_seen_txs"] = list(seen)[-50:]
@@ -322,6 +338,43 @@ def check_rmp1_fernando_settlement(state):
             dt = time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime(ts))
             msg += f"+${v:.4f} USDT desde {'HOT_WALLET' if fr == HOT_WALLET else 'TREASURY' if fr == TREASURY else 'CASH_OUT'}\n[tx](https://tronscan.org/#/transaction/{h}) · {dt}\n\n"
         send_alert(msg, "OPP")
+
+def check_rm7_collector_fleet(state):
+    """RM7: Salud del canal de captación — flota de colectoras de depósito.
+    Suma actividad reciente; si TODA la flota queda en silencio = captación muerta
+    (señal temprana, independiente del dominio)."""
+    cutoff = time.time() - 24 * 3600
+    active = 0
+    total_in_24h = 0.0
+    lines = []
+    for addr, label in DEPOSIT_COLLECTORS.items():
+        txs = get_trc20_tx(addr, limit=30)
+        if txs is None:
+            continue
+        recent_in = 0.0
+        last_ts = 0
+        for t in txs:
+            ts = t.get("block_timestamp", 0) / 1000
+            last_ts = max(last_ts, ts)
+            if ts >= cutoff and t.get("to") == addr:
+                recent_in += int(t.get("value", 0)) / 1e6
+        if last_ts >= cutoff:
+            active += 1
+        total_in_24h += recent_in
+        lines.append(f"{label}: ${recent_in:,.0f} 24h")
+        time.sleep(0.2)
+    state["rm7_collectors_active"] = active
+    state["rm7_collectors_in_24h"] = total_in_24h
+    print(f"  RM7: Flota colectoras activas {active}/{len(DEPOSIT_COLLECTORS)} · IN 24h ${total_in_24h:,.0f}")
+    # Si TODA la flota silenciosa 24h = canal de depósito muerto (pre-rug fuerte)
+    if active == 0:
+        send_alert(
+            "*RM7 — FLOTA DE COLECTORAS EN SILENCIO 24h*\n"
+            "Ninguna de las direcciones de depósito de RM recibió fondos en 24h.\n"
+            "🚨 Canal de captación posiblemente muerto. Verificar treasury/cash-out.",
+            "CRIT",
+        )
+
 
 # ============= MAIN =============
 
@@ -341,6 +394,7 @@ def main():
         check_rm3_treasury_flows(state)
         check_rm4_hot_inbound_rate(state)
         check_rm5_cashout_wallet(state)
+        check_rm7_collector_fleet(state)
         check_rmp1_fernando_settlement(state)
 
     save_state(state)
