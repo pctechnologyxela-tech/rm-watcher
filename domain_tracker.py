@@ -48,6 +48,14 @@ KNOWN_SEED = [
     "m1.rm86940fc.life", "m1.rm15984ct.shop", "m1.rm68123pw.store",
 ]
 
+# Dominio PERMANENTE oficial de RM (RM lo anuncia como "permanent VIP domain";
+# verificado vivo 2026-06-01, resuelve al mismo destino que el dominio rotativo).
+# Mientras este resuelva NO hay "rotación sin solución" — es el ancla estable.
+PERMANENT_DOMAIN = "m1.rm888.club"
+# Dominios que SIEMPRE se chequean (se inyectan en hosts cada corrida, no solo en seed).
+# El activo se actualiza al detectar uno nuevo; el permanente es fijo.
+ALWAYS_CHECK = ["m1.rm888.club", "m1.rm14578ku.shop"]
+
 # Strings de huella del template RM (confirmados en vivo 2026-05-30 sobre
 # m1.rm25108gb.store · title "RM新时代 - 引领时代, 投盈未来"). El bare "rm" se
 # excluye a propósito (demasiado laxo). "rm新时代"+"saba" son los discriminantes.
@@ -260,8 +268,14 @@ def main():
             hosts[h] = {"first_seen": utc_now_iso(), "source": "seed", "alive": None, "ip": None}
         print(f"  Seed: {len(KNOWN_SEED)} dominios históricos")
 
+    # Inyectar SIEMPRE el permanente + activo (no solo en primera corrida)
+    for h in ALWAYS_CHECK:
+        if h not in hosts:
+            hosts[h] = {"first_seen": utc_now_iso(), "source": "always-check", "alive": None, "ip": None}
+
     # ---- D1: liveness de conocidos ----
     any_alive_known = False
+    permanent_alive = False
     for h in list(hosts.keys()):
         ip = dns_resolve(h)
         hosts[h]["alive"] = bool(ip)
@@ -269,6 +283,8 @@ def main():
         hosts[h]["last_check"] = utc_now_iso()
         if ip:
             any_alive_known = True
+            if h == PERMANENT_DOMAIN:
+                permanent_alive = True
             print(f"  D1 ALIVE {h} -> {ip}")
     if not any_alive_known:
         print("  D1: NINGÚN dominio conocido vivo → rotación en curso, buscando nuevo")
@@ -325,19 +341,23 @@ def main():
         )
     save_domains(data)
 
-    # Alerta de rotación si todo conocido murió y NO hay candidato alto
-    if not any_alive_known and not top:
+    # Alerta de rotación SOLO si TAMBIÉN murió el permanente (ancla estable).
+    # Mientras m1.rm888.club resuelva, RM es accesible → NO alertar "sin solución".
+    if not any_alive_known and not permanent_alive and not top:
         prev = data.get("_rotation_alerted", "")
         if prev != utc_now_iso()[:10]:  # 1 vez/día
             data["_rotation_alerted"] = utc_now_iso()[:10]
             save_domains(data)
             send_alert(
                 "*Rotación RM en curso*\n\n"
-                "Ningún dominio conocido resuelve y aún no hay candidato confiable en CT logs.\n"
+                f"Ni el dominio rotativo ni el permanente (`{PERMANENT_DOMAIN}`) resuelven, "
+                "y aún no hay candidato confiable en CT logs.\n"
                 "Acción: revisa el grupo Telegram de RM por el dominio nuevo y verifícalo on-chain "
                 "antes de operar. Corre `scripts/rm_domain_telegram_scan.py` local.",
                 "WARN",
             )
+    elif permanent_alive:
+        print(f"  Permanente {PERMANENT_DOMAIN} VIVO → RM accesible, sin alerta de rotación.")
 
     print(f"=== Domain Tracker COMPLETE · {len(candidates)} candidatos · {len(top)} alertas ===")
 
