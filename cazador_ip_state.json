@@ -1,6 +1,12 @@
 {
-  "ran": "2026-06-04T02:12:33.710120+00:00",
+  "ran": "2026-06-04T05:28:25.798032+00:00",
   "seen": [
+    "m1.bf28641xt.store",
+    "m1.bf29847zs.shop",
+    "m1.bf44581sr.store",
+    "m1.bf55692kp.store",
+    "m1.bf64821rv.shop",
+    "m1.bf67302me.store",
     "m1.bf72136ha.store",
     "m1.bf75294cw.shop",
     "m1.bf82967ks.shop",
@@ -34,23 +40,35 @@
     "m1.bw73426bz.com",
     "m1.jc76102go.shop",
     "m1.jp73209go.shop",
+    "m1.op19467ri.shop",
+    "m1.op90715gz.shop",
     "m1.pn00737po.com",
-    "m1.pn13458op.com"
+    "m1.pn13458op.com",
+    "m1.rm25108gb.store",
+    "m1.rm50791lt.store",
+    "m1.rm60972hq.store",
+    "m1.rm76823dx.store",
+    "m1.ww38164bm.shop",
+    "m1.ww60318yw.shop"
   ],
-  "rm_live": [],
-  "rm_alerted": [],
+  "rm_live": [
+    [
+      "m1.rm50791lt.store",
+      "103.183.198.67"
+    ],
+    [
+      "m1.rm76823dx.store",
+      "103.183.198.67"
+    ]
+  ],
+  "rm_alerted": [
+    "m1.rm50791lt.store",
+    "m1.rm76823dx.store"
+  ],
   "brands": {
     "bf": {
-      "live": 7,
+      "live": 13,
       "dead": 0
-    },
-    "bs": {
-      "live": 0,
-      "dead": 8
-    },
-    "bv": {
-      "live": 0,
-      "dead": 13
     },
     "bw": {
       "live": 3,
@@ -64,7 +82,19 @@
       "live": 1,
       "dead": 0
     },
+    "op": {
+      "live": 2,
+      "dead": 0
+    },
     "pn": {
+      "live": 2,
+      "dead": 0
+    },
+    "rm": {
+      "live": 2,
+      "dead": 2
+    },
+    "ww": {
       "live": 2,
       "dead": 0
     }
