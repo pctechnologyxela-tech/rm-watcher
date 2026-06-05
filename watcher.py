@@ -16,13 +16,19 @@ Watchers operativos (Capa 1 — on-chain TRON only):
   RM4: Hot wallet inbound rate (deposits/hour) — cero deposits 12h = pre-rug
   RM5: Treasury outflow grandes (>$50K) = cash-out anómalo
   RM6: TRX balance hot wallet (operador queda sin gas = preview to abandon)
+  RM7: Flota de colectoras de depósito (captación viva/muerta)
+  RM8: [2026-06-05] PAYOUT_HUB TCciSR7 (paga a usuarios) — FREEZE (deja de pagar >6h) +
+       CONCENTRACIÓN (paga a pocos/consolida). Antes el hub estaba definido pero NO vigilado.
 
 Capa 2 — Wallet Fernando (settlement tracking):
   RMP1: Wallet Fernando TRON recibe USDT desde sistema RM = settlement confirmado
 
+DIGEST: [2026-06-05] resumen diario solo-números al topic RM (P13).
+
 Run schedule:
   Cada 6h: full sweep (cron 41 */6 * * *)
-  Cada 1h: light (RM1 + RM2 balance check only) — para drain rápido detection
+  Cada 1h: light (RM1 + RM2 + RM8) — para drain/freeze rápido detection
+  Digest diario: 17:11 UTC
 """
 import os
 import sys
@@ -376,6 +382,80 @@ def check_rm7_collector_fleet(state):
         )
 
 
+def check_rm8_payout_hub(state, window_min=360):
+    """RM8 [2026-06-05] (P5 freeze + P3 concentración): salud del PAYOUT_HUB TCciSR7
+    (paga a usuarios; descubierto 06-01 pero antes NO vigilado). Mide:
+      - cadencia de pago (horas desde el último OUT) → FREEZE si el hub deja de pagar.
+      - concentración de destinos → si paga a pocos/consolida en vez de a muchos usuarios."""
+    txs = get_trc20_tx(PAYOUT_HUB, limit=50)
+    if not txs:
+        print("  RM8 SKIP: no tx data", file=sys.stderr)
+        return
+    cutoff = time.time() - window_min * 60
+    by = {}
+    total_out = 0.0
+    last_out_ts = 0
+    for t in txs:
+        ts = t.get("block_timestamp", 0) / 1000
+        if t.get("from") != PAYOUT_HUB:
+            continue
+        last_out_ts = max(last_out_ts, ts)
+        if ts >= cutoff:
+            v = int(t.get("value", 0)) / 1e6
+            by[t.get("to")] = by.get(t.get("to"), 0.0) + v
+            total_out += v
+    uniq = len(by)
+    ranked = sorted(by.values(), reverse=True)
+    conc = (sum(ranked[:5]) / total_out) if total_out else 0.0
+    hours_since = (time.time() - last_out_ts) / 3600 if last_out_ts else 999
+    # transición: solo es FREEZE si ANTES estaba pagando y ahora dejó (evita falso positivo
+    # si este hub no es el pagador activo — al baseline mostró último pago hace ~2514h)
+    prev_out = state.get("rm8_hub_out_6h")
+    was_paying = prev_out is not None and prev_out > 0
+    state["rm8_hub_out_6h"] = round(total_out, 0)
+    state["rm8_hub_uniq"] = uniq
+    state["rm8_hub_conc"] = round(conc, 3)
+    state["rm8_hub_hours_since_payout"] = round(hours_since, 1)
+    state["rm8_hub_seen"] = True
+    print(f"  RM8: PayoutHub OUT 6h=${total_out:,.0f} · {uniq} destinos · top5={conc*100:.0f}% · último pago hace {hours_since:.1f}h")
+    today = utc_now_iso()[:10]
+    # FREEZE: el hub ESTABA pagando y dejó de pagar (transición, no estado absoluto)
+    if was_paying and total_out == 0 and hours_since >= 6 and state.get("rm8_freeze_alerted") != today:
+        state["rm8_freeze_alerted"] = today
+        send_alert(
+            f"🧊 *RM8 — PAYOUT HUB DEJÓ DE PAGAR (~{hours_since:.0f}h)*\n"
+            f"El hub que pagaba a usuarios (`{PAYOUT_HUB[:10]}…`) cortó los pagos.\n"
+            f"Posible freeze/pre-corte. NO depositar, retirar lo retirable.\n"
+            f"[Tronscan](https://tronscan.org/#/address/{PAYOUT_HUB})",
+            "CRIT",
+        )
+    # CONCENTRACIÓN: paga a pocos/consolida en vez de a muchos usuarios
+    elif total_out > 20_000 and uniq < 8 and conc >= 0.7 and state.get("rm8_conc_alerted") != today:
+        state["rm8_conc_alerted"] = today
+        send_alert(
+            f"🎯 *RM8 — Payout hub concentrando salidas*\n"
+            f"${total_out:,.0f} a solo {uniq} destinos (top-5 {conc*100:.0f}%).\n"
+            f"Pago sano a usuarios sería disperso. Posible consolidación/cash-out.",
+            "WARN",
+        )
+
+
+def post_digest(state):
+    """RM-DIGEST [2026-06-05] (P13): resumen diario solo-números al topic RM."""
+    txt = (
+        f"📊 *RM — digest diario on-chain* ({utc_now_iso()[:10]})\n"
+        f"• Hot wallet operador: ${state.get('rm1_hot_usdt', 0):,.0f} USDT · {state.get('rm1_hot_trx', 0):,.0f} TRX\n"
+        f"• Treasury: ${state.get('rm2_treasury_usdt', 0):,.0f}\n"
+        f"• Cash-out wallet: ${state.get('rm5_cashout_usdt', 0):,.0f}\n"
+        f"• Payout hub 6h: ${state.get('rm8_hub_out_6h', 0):,.0f} a {state.get('rm8_hub_uniq', 0)} destinos · "
+        f"último pago hace {state.get('rm8_hub_hours_since_payout', '?')}h\n"
+        f"• Colectoras activas: {state.get('rm7_collectors_active', '?')}/{len(DEPOSIT_COLLECTORS)} · "
+        f"IN 24h ${state.get('rm7_collectors_in_24h', 0):,.0f}\n"
+        f"_Datos on-chain TRON (TronGrid). No es asesoría financiera._"
+    )
+    send_alert(txt, "INFO")
+
+
 # ============= MAIN =============
 
 def main():
@@ -384,11 +464,13 @@ def main():
     is_first_run = "rm1_hot_usdt" not in state
 
     cadence = os.environ.get("WATCHER_CADENCE", "6h")
-    print(f"Cadence: {cadence} · first_run={is_first_run}")
+    is_digest = os.environ.get("WATCHER_DIGEST", "") == "1"
+    print(f"Cadence: {cadence} · digest={is_digest} · first_run={is_first_run}")
 
     # Always (cada 1h y cada 6h)
     check_rm1_hot_wallet(state)
     check_rm2_treasury(state)
+    check_rm8_payout_hub(state)  # P5 freeze + P3 concentración del hub que paga a usuarios
 
     if cadence == "6h":
         check_rm3_treasury_flows(state)
@@ -396,6 +478,9 @@ def main():
         check_rm5_cashout_wallet(state)
         check_rm7_collector_fleet(state)
         check_rmp1_fernando_settlement(state)
+
+    if is_digest:
+        post_digest(state)
 
     save_state(state)
 

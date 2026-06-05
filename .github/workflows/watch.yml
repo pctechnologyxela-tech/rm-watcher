@@ -4,9 +4,16 @@ on:
   schedule:
     # Full sweep cada 6h (offset :41 evita choque con bitnest-watcher :23)
     - cron: '41 */6 * * *'
-    # Light (RM1 + RM2 only) cada 1h para drain detection rápido
+    # Light (RM1 + RM2 + RM8) cada 1h para drain/freeze detection rápido
     - cron: '47 * * * *'
+    # Digest diario solo-números (17:11 UTC ≈ 11:11 GT)
+    - cron: '11 17 * * *'
   workflow_dispatch:
+    inputs:
+      digest:
+        description: 'Forzar digest diario'
+        required: false
+        default: 'false'
 
 permissions:
   contents: write
@@ -31,15 +38,22 @@ jobs:
         id: cadence
         run: |
           minute=$(date -u +%M)
+          hour=$(date -u +%H)
           if [ "$minute" = "41" ]; then
             echo "cadence=6h" >> $GITHUB_OUTPUT
           else
             echo "cadence=1h" >> $GITHUB_OUTPUT
           fi
+          if { [ "$hour" = "17" ] && [ "$minute" = "11" ]; } || [ "${{ github.event.inputs.digest }}" = "true" ]; then
+            echo "digest=1" >> $GITHUB_OUTPUT
+          else
+            echo "digest=" >> $GITHUB_OUTPUT
+          fi
 
       - name: Run watcher
         env:
           WATCHER_CADENCE: ${{ steps.cadence.outputs.cadence }}
+          WATCHER_DIGEST: ${{ steps.cadence.outputs.digest }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TELEGRAM_RM_THREAD_ID: ${{ secrets.TELEGRAM_RM_THREAD_ID }}
