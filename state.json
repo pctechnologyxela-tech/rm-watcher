@@ -1,7 +1,7 @@
 {
-  "rm1_hot_last_op": 1780756593.0,
+  "rm1_hot_last_op": 1780839426.0,
   "rm1_hot_trx": 31.73941,
-  "rm1_hot_usdt": 2627.75484,
+  "rm1_hot_usdt": 1500.48484,
   "rm2_treasury_usdt": 37008.428597,
   "rm3_treasury_6h_out": 45168.67999999999,
   "rm4_hot_inbound_12h_count": 3,
@@ -11,7 +11,7 @@
   "rm7_collectors_active": 5,
   "rm7_collectors_in_24h": 58502.2,
   "rm8_hub_conc": 0.0,
-  "rm8_hub_hours_since_payout": 2557.1,
+  "rm8_hub_hours_since_payout": 2561.3,
   "rm8_hub_out_6h": 0.0,
   "rm8_hub_seen": true,
   "rm8_hub_uniq": 0,
