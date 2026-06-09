@@ -1,5 +1,5 @@
 {
-  "ran": "2026-06-09T01:34:48.686566+00:00",
+  "ran": "2026-06-09T04:52:43.389935+00:00",
   "seen": [
     "m1.bf28641xt.store",
     "m1.bf29847zs.shop",
@@ -51,49 +51,11 @@
     "m1.ww38164bm.shop",
     "m1.ww60318yw.shop"
   ],
-  "rm_live": [
-    [
-      "m1.rm76823dx.store",
-      "103.42.146.28"
-    ]
-  ],
+  "rm_live": [],
   "rm_alerted": [
     "m1.rm50791lt.store",
     "m1.rm76823dx.store"
   ],
-  "brands": {
-    "bf": {
-      "live": 13,
-      "dead": 0
-    },
-    "bw": {
-      "live": 3,
-      "dead": 0
-    },
-    "jc": {
-      "live": 1,
-      "dead": 0
-    },
-    "jp": {
-      "live": 1,
-      "dead": 0
-    },
-    "op": {
-      "live": 2,
-      "dead": 0
-    },
-    "pn": {
-      "live": 2,
-      "dead": 0
-    },
-    "rm": {
-      "live": 1,
-      "dead": 3
-    },
-    "ww": {
-      "live": 2,
-      "dead": 0
-    }
-  },
+  "brands": {},
   "rm_backend": []
 }
