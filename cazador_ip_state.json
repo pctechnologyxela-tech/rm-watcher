@@ -1,5 +1,5 @@
 {
-  "ran": "2026-06-10T06:53:26.416855+00:00",
+  "ran": "2026-06-10T10:45:55.243218+00:00",
   "seen": [
     "m1.bf28641xt.store",
     "m1.bf29847zs.shop",
@@ -51,12 +51,7 @@
     "m1.ww38164bm.shop",
     "m1.ww60318yw.shop"
   ],
-  "rm_live": [
-    [
-      "m1.rm76823dx.store",
-      "103.42.146.28"
-    ]
-  ],
+  "rm_live": [],
   "rm_alerted": [
     "m1.rm50791lt.store",
     "m1.rm76823dx.store"
@@ -87,8 +82,8 @@
       "dead": 0
     },
     "rm": {
-      "live": 1,
-      "dead": 3
+      "live": 0,
+      "dead": 4
     },
     "ww": {
       "live": 2,
