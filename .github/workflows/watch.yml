@@ -18,6 +18,12 @@ on:
 permissions:
   contents: write
 
+# Serializa runs para evitar la carrera de git push (rechazo "fetch first")
+# cuando el cron de 1h y el de 6h coinciden. No cancela el run en curso.
+concurrency:
+  group: rm-watcher
+  cancel-in-progress: false
+
 jobs:
   watch:
     runs-on: ubuntu-latest
