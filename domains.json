@@ -1,11 +1,12 @@
 {
-  "_rotation_alerted": "2026-06-02",
+  "_rotation_alerted": "2026-06-27",
+  "_last_manual_update": "2026-06-27 (Fernando aportó enlace vivo w1.rm19627kp.space/targetList.php; watcher auto está APAGADO desde 06-27, actualización manual)",
   "baseline": {
     "asn_hint": "AS7483 Skycloud Computing / HK (103.42.146.28)",
-    "captured": "2026-05-30T00:00:00Z",
+    "captured": "2026-06-27T18:16:00Z",
     "favicon": null,
-    "host": "m1.rm25108gb.store",
-    "note": "SPA sin favicon estatico; fingerprint via strings+title. Saba Sports confirmado.",
+    "host": "m1.rm19627kp.space",
+    "note": "SPA sin favicon estatico; fingerprint via strings+title. Saba Sports confirmado. Host actualizado 2026-06-27 (misma IP baseline 103.42.146.28).",
     "strings": [
       "rm新时代",
       "引领时代",
@@ -20,6 +21,17 @@
     ]
   },
   "hosts": {
+    "m1.rm19627kp.space": {
+      "active": true,
+      "alive": true,
+      "first_seen": "2026-06-27T18:16:00Z",
+      "ip": "103.42.146.28",
+      "last_check": "2026-06-27T18:16:00Z",
+      "note": "ACTIVO 2026-06-27. HTTP 200 en w1.rm19627kp.space/targetList.php (m1. = 302). Fingerprint OK: title 'RM新时代 - 引领时代, 投盈未来'; strings saba/体育/注册/引领时代/投盈未来. IPs 103.42.146.28 (=baseline AS7483) + 103.183.198.67; CNAME kr243-site-01.gocname.com; IPv6 2803:c800:0:7b::2. Fuente: Fernando.",
+      "score": 100,
+      "source": "manual-fernando",
+      "subdomains": ["w1", "m1"]
+    },
     "m1.rm10482qc.space": {
       "alive": false,
       "first_seen": "2026-05-08T13:04:00Z",
@@ -56,12 +68,12 @@
       "source": "telegram"
     },
     "m1.rm25108gb.store": {
-      "active": true,
+      "active": false,
       "alive": false,
       "first_seen": "2026-05-29T10:13:00Z",
       "ip": null,
-      "last_check": "2026-06-21T15:00:13Z",
-      "note": "DOMINIO ACTIVO confirmado vivo 2026-05-30",
+      "last_check": "2026-06-27T18:16:00Z",
+      "note": "Fue activo 2026-05-30→~06-16; rotado. Reemplazado por m1.rm19627kp.space (06-27).",
       "score": 100,
       "source": "telegram"
     },

@@ -1,0 +1,60 @@
+name: RM Domain Check
+
+# Solo rastreo de DOMINIOS de RM (rotación) — SIN el watcher on-chain (apagado por Fernando 06-27).
+# Corre domain_tracker.py (crt.sh) + cazador_reverse_ip_watch.py (reverse-IP sobre baseline 103.42.146.28)
+# para detectar el próximo dominio rotatorio y alertar a Telegram. $0 (APIs públicas, repo público).
+on:
+  schedule:
+    # Cada 6h (offset :31 para no chocar con otros crons)
+    - cron: '31 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rm-domain-check
+  cancel-in-progress: false
+
+jobs:
+  domains:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install deps
+        run: pip install requests mmh3
+
+      - name: Domain tracker (crt.sh)
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_RM_THREAD_ID: ${{ secrets.TELEGRAM_RM_THREAD_ID }}
+          TELEGRAM_BITRADEX_THREAD_ID: ${{ secrets.TELEGRAM_BITRADEX_THREAD_ID }}
+        run: python domain_tracker.py || echo "domain_tracker best-effort (crt.sh puede estar caído)"
+
+      - name: Cazador reverse-IP (detector proactivo dominio RM nuevo)
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_RM_THREAD_ID: ${{ secrets.TELEGRAM_RM_THREAD_ID }}
+        run: python cazador_reverse_ip_watch.py || echo "cazador reverse-IP best-effort"
+
+      - name: Commit state if changed
+        run: |
+          git config user.name "rm-domain-bot"
+          git config user.email "bot@automatiza.ia"
+          git add domains.json cazador_ip_state.json
+          if git diff --cached --quiet; then
+            echo "No domain state changes"
+          else
+            git commit -m "domains: update $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            git push
+          fi
